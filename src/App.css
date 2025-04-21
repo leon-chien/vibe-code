@@ -1,7 +1,7 @@
 :root {
   --bg-color: #323437;
-  --main-color: #e2b714;
-  --caret-color: #e2b714;
+  --main-color: #5b88e3;
+  --caret-color: #afafaf;
   --text-color: #d1d0c5;
   --error-color: #ca4754;
   --sub-color: #646669;
@@ -85,7 +85,9 @@ body, .App {
   position: relative;
   margin-bottom: 1.5rem;
   min-height: 200px;
-  overflow-wrap: break-word;
+  width: 70vw; /* Added to make the textbox 70% of the screen width */
+  margin-left: auto; /* Center horizontally */
+  margin-right: auto; /* Center horizontally */
 }
 
 .code-text {
@@ -122,15 +124,20 @@ body, .App {
   position: relative;
 }
 
+.code-char.current {
+  color: var(--sub-color); /* Use the sub-color for the current character */
+}
+
 .code-char.current::after {
   content: '';
   position: absolute;
   left: 0;
-  bottom: 0;
-  height: 3px;
-  width: 100%;
-  background-color: var(--caret-color);
-  animation: blink 1s infinite;
+  top: 0;
+  height: 1.2em; /* Slightly taller than the font size for better visibility */
+  width: 2px; /* Thin vertical bar */
+  background-color: var(--caret-color); /* Use the caret color */
+  animation: blink 1s infinite; /* Blinking effect */
+  line-height: normal; /* Prevent extra line height issues */
 }
 
 .code-char.correct {
