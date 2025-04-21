@@ -137,7 +137,10 @@ body, .App {
   width: 2px; /* Thin vertical bar */
   background-color: var(--caret-color); /* Use the caret color */
   animation: blink 1s infinite; /* Blinking effect */
-  line-height: normal; /* Prevent extra line height issues */
+}
+
+.code-char.current.typing::after {
+  animation: none; /* Stop the blinking animation when typing */
 }
 
 .code-char.correct {

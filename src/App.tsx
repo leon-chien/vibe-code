@@ -32,8 +32,9 @@ const App: React.FC = () => {
   const [typed, setTyped] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [active, setActive] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<number>();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const timerRef = useRef<number | null>(null);
+  const typingTimeout = useRef<number | null>(null);
 
   const init = () => {
     const arr = codeSnippets[lang];
@@ -43,7 +44,9 @@ const App: React.FC = () => {
     setTyped(0);
     setCorrect(0);
     setActive(false);
-    clearInterval(timerRef.current);
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+    }
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -52,10 +55,14 @@ const App: React.FC = () => {
   useEffect(() => {
     if (active) {
       timerRef.current = window.setInterval(() => {
-        setTime(t => (t > 0 ? t - 1 : (clearInterval(timerRef.current), 0)));
+        setTime(t => (t > 0 ? t - 1 : (clearInterval(timerRef.current!), 0)));
       }, 1000);
     }
-    return () => clearInterval(timerRef.current);
+    return () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [active]);
 
   const cpm = time < 60 ? Math.round(typed / ((60 - time) / 60)) : 0;
@@ -105,30 +112,84 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="input-area">
-          <input
-            ref={inputRef}
-            className="input-field"
-            onChange={e => {
-              const v = e.target.value;
-              if (!active && v.length > 0) setActive(true);
-              setTyped(v.length);
-              setCorrect(
-                Array.from(v).filter((c, i) => c === text[i]).length
-              );
-              setIdx(v.length);
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Tab' || e.key === 'Enter') {
-                e.preventDefault();
-                const v = inputRef.current!.value;
-                const ins = e.key === 'Tab' ? '    ' : '\n';
-                const s = inputRef.current!.selectionStart!;
-                const ePos = inputRef.current!.selectionEnd!;
-                inputRef.current!.value = v.slice(0, s) + ins + v.slice(ePos);
-                setTimeout(() => inputRef.current!.dispatchEvent(new Event('input')), 0);
+        <textarea
+          ref={inputRef}
+          className="input-field"
+          onChange={e => {
+            const v = e.target.value;
+            if (!active && v.length > 0) setActive(true);
+            setTyped(v.length);
+            setCorrect(
+              [...v].filter((c, i) => c === text[i]).length
+            );
+            setIdx(v.length);
+          }}
+          onKeyDown={e => {
+            const currentChar = document.querySelector('.code-char.current');
+            if (currentChar) {
+              currentChar.classList.add('typing');
+              if (typingTimeout.current) {
+                clearTimeout(typingTimeout.current);
               }
-            }}
-          />
+              typingTimeout.current = window.setTimeout(() => {
+                currentChar.classList.remove('typing');
+              }, 500);
+            }
+
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              const v = inputRef.current!.value;
+              const ins = '    ';
+              const s = inputRef.current!.selectionStart!;
+              const ePos = inputRef.current!.selectionEnd!;
+              inputRef.current!.value = v.slice(0, s) + ins + v.slice(ePos);
+              setIdx(s + ins.length);
+              setTimeout(() => inputRef.current!.dispatchEvent(new Event('input')), 0);
+            }
+
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const textarea = inputRef.current!;
+              const value = textarea.value;
+              const cursor = textarea.selectionStart;
+            
+              const beforeCursor = value.slice(0, cursor);
+              const linesBefore = beforeCursor.split('\n');
+              const currentLineIdx = linesBefore.length - 1;
+              const cursorOffset = linesBefore[linesBefore.length - 1].length;
+            
+              const codeLines = text.split('\n');
+              const currentLineInCode = codeLines[currentLineIdx] || '';
+            
+              // IDE-style Enter at end of line
+              if (cursorOffset === currentLineInCode.length) {
+                const nextLine = codeLines[currentLineIdx + 1] || '';
+                const indent = nextLine.match(/^\s*/)?.[0] ?? '';
+                const newValue = value.slice(0, cursor) + '\n' + indent + value.slice(cursor);
+                const newPos = cursor + 1 + indent.length;
+            
+                textarea.value = newValue;
+                textarea.setSelectionRange(newPos, newPos);
+                setIdx(newValue.length);
+                setTimeout(() => textarea.dispatchEvent(new Event('input')), 0);
+              } else {
+                // Enter in middle of line – count as incorrect space
+                const newValue = value.slice(0, cursor) + ' ' + value.slice(cursor);
+                const newPos = cursor + 1;
+            
+                textarea.value = newValue;
+                textarea.setSelectionRange(newPos, newPos);
+                setIdx(newValue.length);
+            
+                // Mark as incorrect manually
+                setTyped(prev => prev + 1);
+                setCorrect(prev => prev); // Don't increase correct count
+            
+                setTimeout(() => textarea.dispatchEvent(new Event('input')), 0);
+              }
+            }
+          }}
+        />
           <button className="restart-btn" onClick={init}>
             Restart Test
           </button>
