@@ -143,6 +143,10 @@ body, .App {
   animation: none; /* Stop the blinking animation when typing */
 }
 
+.code-char.current.noblink::after {
+  animation: none !important;
+}
+
 .code-char.correct {
   color: var(--text-color);
 }

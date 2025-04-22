@@ -44,6 +44,10 @@ const App: React.FC = () => {
     setTyped(0);
     setCorrect(0);
     setActive(false);
+    if (inputRef.current) {
+      inputRef.current.value = ''; // <-- Reset typed text here
+    }
+    
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
     }
@@ -96,7 +100,7 @@ const App: React.FC = () => {
                   i < idx
                     ? ch === (inputRef.current?.value[i] || '') ? 'correct' : 'incorrect'
                     : ''
-                } ${i === idx ? 'current' : ''} ${i > idx ? 'pending' : ''}`}
+                } ${i === idx ? `current ${active ? 'noblink' : ''}` : ''} ${i > idx ? 'pending' : ''}`}                
                 dangerouslySetInnerHTML={{
                   __html:
                     ch === ' '
@@ -117,11 +121,18 @@ const App: React.FC = () => {
           className="input-field"
           onChange={e => {
             const v = e.target.value;
-            if (!active && v.length > 0) setActive(true);
+            if (!active && v.length > 0) {
+              setActive(true);
+          
+              // Stop cursor blinking on first keystroke
+              const currentChar = document.querySelector('.code-char.current');
+              if (currentChar) {
+                currentChar.classList.add('typing');
+              }
+            }
+          
             setTyped(v.length);
-            setCorrect(
-              [...v].filter((c, i) => c === text[i]).length
-            );
+            setCorrect([...v].filter((c, i) => c === text[i]).length);
             setIdx(v.length);
           }}
           onKeyDown={e => {
