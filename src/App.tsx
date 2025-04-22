@@ -47,7 +47,7 @@ const App: React.FC = () => {
     if (inputRef.current) {
       inputRef.current.value = ''; // <-- Reset typed text here
     }
-    
+
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
     }
@@ -72,6 +72,13 @@ const App: React.FC = () => {
   const cpm = time < 60 ? Math.round(typed / ((60 - time) / 60)) : 0;
   const acc = typed > 0 ? Math.round((correct / typed) * 100) : 0;
 
+  const lineHeight = 49.28; // pixels per line; adjust based on font-size/line-height
+  const charsPerLine = 80; // average characters that fit in one line visually
+
+  // Estimate current line index based on how many \n characters have been typed
+  const currentLine = text.slice(0, idx).split('\n').length - 1;
+  const scrollLineOffset = Math.max(0, currentLine - 1); // start scrolling after 2nd line
+
   return (
     <div className="App">
       <div className="header">
@@ -92,27 +99,41 @@ const App: React.FC = () => {
         </div>
         <div className="timer">{time}</div>
         <div className="code-display">
-          <div className="code-text">
-            {text.split('').map((ch, i) => (
-              <span
-                key={i}
-                className={`code-char ${
-                  i < idx
-                    ? ch === (inputRef.current?.value[i] || '') ? 'correct' : 'incorrect'
-                    : ''
-                } ${i === idx ? `current ${active ? 'noblink' : ''}` : ''} ${i > idx ? 'pending' : ''}`}                
-                dangerouslySetInnerHTML={{
-                  __html:
-                    ch === ' '
-                      ? '&nbsp;'
-                      : ch === '\n'
-                      ? '<br/>'
-                      : ch === '\t'
-                      ? '&nbsp;&nbsp;&nbsp;&nbsp;'
-                      : ch
-                }}
-              />
-            ))}
+          <div
+            className="code-text"
+            style={{
+              transform: `translateY(-${scrollLineOffset * lineHeight}px)`
+            }}
+          >
+            {text.split('').map((ch, i) => {
+              const userChar = inputRef.current?.value[i] ?? '';
+              const isCorrect = userChar === ch;
+              const isPending = i >= (inputRef.current?.value.length ?? 0);
+
+              return (
+                <span
+                  key={i}
+                  className={`code-char 
+                    ${i === idx ? 'current' : ''} 
+                    ${isPending
+                      ? 'pending'
+                      : text[i] === inputRef.current?.value[i]
+                        ? 'correct'
+                        : 'incorrect'
+                    }`}
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      ch === ' '
+                        ? '&nbsp;'
+                        : ch === '\n'
+                        ? '<br/>'
+                        : ch === '\t'
+                        ? '&nbsp;&nbsp;&nbsp;&nbsp;'
+                        : ch
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
         <div className="input-area">

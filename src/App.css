@@ -1,12 +1,12 @@
 :root {
-  --bg-color: #323437;
+  --bg-color: #1e1e1e;
   --main-color: #5b88e3;
   --caret-color: #afafaf;
   --text-color: #d1d0c5;
   --error-color: #ca4754;
   --sub-color: #646669;
   --sub-alt-color: #2c2e31;
-  --font: 'Roboto Mono', monospace;
+  --font: 'Cascadia Code', monospace;
 }
 
 * {
@@ -79,23 +79,32 @@ body, .App {
 }
 
 .code-display {
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: 1.5rem;
-  border-radius: 0.5rem;
+  height: calc(3.08rem * 7); /* 5 lines of height, accounting for line spacing */
+  font-size: 2.52rem;
+  line-height: 3.08rem;      /* Must match code-text's line-height */
+  overflow: hidden;
+  width: 85vw; /* 70% of viewport width */
+  overflow: hidden;
+  display: block; /* Remove flex center alignment */
+  font-family: 'Courier New', monospace;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: #1e1e1e;
+  color: white;
+  border-radius: 8px;
   position: relative;
-  margin-bottom: 1.5rem;
-  min-height: 200px;
-  width: 70vw; /* Added to make the textbox 70% of the screen width */
-  margin-left: auto; /* Center horizontally */
-  margin-right: auto; /* Center horizontally */
 }
 
 .code-text {
-  font-size: 1.25rem;
-  line-height: 1.8;
-  letter-spacing: 0.05rem;
   white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 3.08rem;
+  transition: transform 0.2s ease;
+  position: absolute; /* <-- Add this */
+  top: 0;
+  left: 0;
 }
+
 
 .input-area {
   display: flex;
@@ -153,8 +162,6 @@ body, .App {
 
 .code-char.incorrect {
   color: var(--error-color);
-  background-color: rgba(202, 71, 84, 0.3);
-  border-radius: 2px;
 }
 
 .code-char.pending {
