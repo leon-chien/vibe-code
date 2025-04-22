@@ -79,13 +79,12 @@ body, .App {
 }
 
 .code-display {
-  height: calc(3.08rem * 7); /* 5 lines of height, accounting for line spacing */
+  height: calc(3.08rem * 7);
   font-size: 2.52rem;
-  line-height: 3.08rem;      /* Must match code-text's line-height */
+  line-height: 3.08rem;
   overflow: hidden;
-  width: 85vw; /* 70% of viewport width */
-  overflow: hidden;
-  display: block; /* Remove flex center alignment */
+  width: 85vw;
+  display: block;
   font-family: 'Courier New', monospace;
   padding: 1rem;
   box-sizing: border-box;
@@ -100,11 +99,10 @@ body, .App {
   word-break: break-word;
   line-height: 3.08rem;
   transition: transform 0.2s ease;
-  position: absolute; /* <-- Add this */
+  position: absolute;
   top: 0;
   left: 0;
 }
-
 
 .input-area {
   display: flex;
@@ -134,7 +132,7 @@ body, .App {
 }
 
 .code-char.current {
-  color: var(--sub-color); /* Use the sub-color for the current character */
+  color: var(--sub-color);
 }
 
 .code-char.current::after {
@@ -142,14 +140,14 @@ body, .App {
   position: absolute;
   left: 0;
   top: 0;
-  height: 1.2em; /* Slightly taller than the font size for better visibility */
-  width: 2px; /* Thin vertical bar */
-  background-color: var(--caret-color); /* Use the caret color */
-  animation: blink 1s infinite; /* Blinking effect */
+  height: 1.2em;
+  width: 2px;
+  background-color: var(--caret-color);
+  animation: blink 1s infinite;
 }
 
 .code-char.current.typing::after {
-  animation: none; /* Stop the blinking animation when typing */
+  animation: none;
 }
 
 .code-char.current.noblink::after {
@@ -162,6 +160,8 @@ body, .App {
 
 .code-char.incorrect {
   color: var(--error-color);
+  text-decoration: underline wavy var(--error-color);
+  text-underline-offset: 0.25rem;
 }
 
 .code-char.pending {

@@ -23,10 +23,9 @@ const codeSnippets: Record<string, string[]> = {
 };
 
 type Language = 'python' | 'javascript' | 'c';
-
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('python');
-  const [text, setText] = useState('');
+  const [lines, setLines] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
   const [time, setTime] = useState(60);
   const [typed, setTyped] = useState(0);
@@ -37,20 +36,16 @@ const App: React.FC = () => {
   const typingTimeout = useRef<number | null>(null);
 
   const init = () => {
-    const arr = codeSnippets[lang];
-    setText(arr[Math.floor(Math.random() * arr.length)]);
+    const snippet = codeSnippets[lang][Math.floor(Math.random() * codeSnippets[lang].length)];
+    const newLines = snippet.split('\n');
+    setLines(newLines);
     setIdx(0);
     setTime(60);
     setTyped(0);
     setCorrect(0);
     setActive(false);
-    if (inputRef.current) {
-      inputRef.current.value = ''; // <-- Reset typed text here
-    }
-
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-    }
+    if (inputRef.current) inputRef.current.value = '';
+    if (timerRef.current !== null) clearInterval(timerRef.current);
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -62,22 +57,17 @@ const App: React.FC = () => {
         setTime(t => (t > 0 ? t - 1 : (clearInterval(timerRef.current!), 0)));
       }, 1000);
     }
-    return () => {
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current);
-      }
-    };
+    return () => { if (timerRef.current !== null) clearInterval(timerRef.current); };
   }, [active]);
 
   const cpm = time < 60 ? Math.round(typed / ((60 - time) / 60)) : 0;
   const acc = typed > 0 ? Math.round((correct / typed) * 100) : 0;
 
-  const lineHeight = 49.28; // pixels per line; adjust based on font-size/line-height
-  const charsPerLine = 80; // average characters that fit in one line visually
+  const totalText = lines.join('\n');
 
-  // Estimate current line index based on how many \n characters have been typed
-  const currentLine = text.slice(0, idx).split('\n').length - 1;
-  const scrollLineOffset = Math.max(0, currentLine - 1); // start scrolling after 2nd line
+  const currentLineIndex = totalText.slice(0, idx).split('\n').length - 1;
+  const scrollOffset = Math.max(0, currentLineIndex - 1); // scroll from second line
+  const lineHeightPx = 49.28; // line height in px, must match CSS
 
   return (
     <div className="App">
@@ -88,157 +78,127 @@ const App: React.FC = () => {
       <div className="test-wrapper">
         <div className="language-select">
           {(['python','javascript','c'] as Language[]).map(l => (
-            <button
-              key={l}
-              className={`language-btn ${l === lang ? 'active' : ''}`}
-              onClick={() => setLang(l)}
-            >
-              {l}
-            </button>
+            <button key={l} className={`language-btn ${l === lang ? 'active' : ''}`} onClick={() => setLang(l)}>{l}</button>
           ))}
         </div>
         <div className="timer">{time}</div>
         <div className="code-display">
-          <div
-            className="code-text"
-            style={{
-              transform: `translateY(-${scrollLineOffset * lineHeight}px)`
-            }}
-          >
-            {text.split('').map((ch, i) => {
-              const userChar = inputRef.current?.value[i] ?? '';
-              const isCorrect = userChar === ch;
-              const isPending = i >= (inputRef.current?.value.length ?? 0);
+          <div className="code-text" style={{ transform: `translateY(-${scrollOffset * lineHeightPx}px)` }}>
+            {lines.map((line, lineIdx) => {
+              const startIdx = lines.slice(0, lineIdx).reduce((sum, l) => sum + l.length + 1, 0);
+              const isEmptyLine = line.length === 0;
+              const isCursorOnEmptyLine = isEmptyLine && idx === startIdx;
+              const isCursorAtEnd = idx === startIdx + line.length;
 
               return (
-                <span
-                  key={i}
-                  className={`code-char 
-                    ${i === idx ? 'current' : ''} 
-                    ${isPending
-                      ? 'pending'
-                      : text[i] === inputRef.current?.value[i]
-                        ? 'correct'
-                        : 'incorrect'
-                    }`}
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      ch === ' '
-                        ? '&nbsp;'
-                        : ch === '\n'
-                        ? '<br/>'
-                        : ch === '\t'
-                        ? '&nbsp;&nbsp;&nbsp;&nbsp;'
-                        : ch
-                  }}
-                />
+                <div key={lineIdx}>
+                  {isEmptyLine ? (
+                    isCursorOnEmptyLine ? <span className="code-char current">&nbsp;</span> : <span className="code-char">&nbsp;</span>
+                  ) : (
+                    <>
+                      {line.split('').map((ch, charIdx) => {
+                        const flatIdx = startIdx + charIdx;
+                        const userChar = inputRef.current?.value[flatIdx] ?? '';
+                        const isPending = flatIdx >= (inputRef.current?.value.length ?? 0);
+                        const isCurrent = flatIdx === idx;
+
+                        return (
+                          <span
+                            key={charIdx}
+                            className={`code-char ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ch === userChar ? 'correct' : 'incorrect'}`}
+                            dangerouslySetInnerHTML={{
+                              __html: ch === ' ' ? '&nbsp;' : ch === '\t' ? '&nbsp;&nbsp;&nbsp;&nbsp;' : ch
+                            }}
+                          />
+                        );
+                      })}
+                      {isCursorAtEnd && <span className="code-char current">&nbsp;</span>}
+                    </>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
         <div className="input-area">
-        <textarea
-          ref={inputRef}
-          className="input-field"
-          onChange={e => {
-            const v = e.target.value;
-            if (!active && v.length > 0) {
-              setActive(true);
-          
-              // Stop cursor blinking on first keystroke
-              const currentChar = document.querySelector('.code-char.current');
-              if (currentChar) {
-                currentChar.classList.add('typing');
-              }
-            }
-          
-            setTyped(v.length);
-            setCorrect([...v].filter((c, i) => c === text[i]).length);
-            setIdx(v.length);
-          }}
-          onKeyDown={e => {
-            const currentChar = document.querySelector('.code-char.current');
-            if (currentChar) {
-              currentChar.classList.add('typing');
-              if (typingTimeout.current) {
-                clearTimeout(typingTimeout.current);
-              }
-              typingTimeout.current = window.setTimeout(() => {
-                currentChar.classList.remove('typing');
-              }, 500);
-            }
-
-            if (e.key === 'Tab') {
-              e.preventDefault();
-              const v = inputRef.current!.value;
-              const ins = '    ';
-              const s = inputRef.current!.selectionStart!;
-              const ePos = inputRef.current!.selectionEnd!;
-              inputRef.current!.value = v.slice(0, s) + ins + v.slice(ePos);
-              setIdx(s + ins.length);
-              setTimeout(() => inputRef.current!.dispatchEvent(new Event('input')), 0);
-            }
-
-            if (e.key === 'Enter') {
-              e.preventDefault();
+          <textarea
+            ref={inputRef}
+            className="input-field"
+            onChange={e => {
+              const v = e.target.value;
+              if (!active && v.length > 0) setActive(true);
+              setTyped(v.length);
+              setCorrect([...v].filter((c, i) => c === totalText[i]).length);
+              setIdx(v.length);
+            }}
+            onKeyDown={e => {
               const textarea = inputRef.current!;
+              const pos = textarea.selectionStart;
               const value = textarea.value;
-              const cursor = textarea.selectionStart;
-            
-              const beforeCursor = value.slice(0, cursor);
-              const linesBefore = beforeCursor.split('\n');
-              const currentLineIdx = linesBefore.length - 1;
-              const cursorOffset = linesBefore[linesBefore.length - 1].length;
-            
-              const codeLines = text.split('\n');
-              const currentLineInCode = codeLines[currentLineIdx] || '';
-            
-              // IDE-style Enter at end of line
-              if (cursorOffset === currentLineInCode.length) {
-                const nextLine = codeLines[currentLineIdx + 1] || '';
-                const indent = nextLine.match(/^\s*/)?.[0] ?? '';
-                const newValue = value.slice(0, cursor) + '\n' + indent + value.slice(cursor);
-                const newPos = cursor + 1 + indent.length;
-            
-                textarea.value = newValue;
-                textarea.setSelectionRange(newPos, newPos);
-                setIdx(newValue.length);
-                setTimeout(() => textarea.dispatchEvent(new Event('input')), 0);
-              } else {
-                // Enter in middle of line – count as incorrect space
-                const newValue = value.slice(0, cursor) + ' ' + value.slice(cursor);
-                const newPos = cursor + 1;
-            
-                textarea.value = newValue;
-                textarea.setSelectionRange(newPos, newPos);
-                setIdx(newValue.length);
-            
-                // Mark as incorrect manually
-                setTyped(prev => prev + 1);
-                setCorrect(prev => prev); // Don't increase correct count
-            
+              const totalLen = totalText.length;
+
+              const isAtEndOfLine = (() => {
+                const lineIdx = totalText.slice(0, pos).split('\n').length - 1;
+                const lineStart = lines.slice(0, lineIdx).reduce((sum, l) => sum + l.length + 1, 0);
+                return pos === lineStart + (lines[lineIdx]?.length ?? 0);
+              })();
+
+              if (isAtEndOfLine && !(e.key === 'Enter' || e.key === 'Backspace')) {
+                e.preventDefault();
+                return;
+              }
+
+              if (e.key === 'Backspace') {
+                if (pos > 0 && value[pos - 1] === '\n') {
+                  e.preventDefault();
+                }
+              }
+
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                const s = textarea.selectionStart!;
+                const ePos = textarea.selectionEnd!;
+                const ins = '    ';
+                textarea.value = value.slice(0, s) + ins + value.slice(ePos);
+                setIdx(s + ins.length);
                 setTimeout(() => textarea.dispatchEvent(new Event('input')), 0);
               }
-            }
-          }}
-        />
-          <button className="restart-btn" onClick={init}>
-            Restart Test
-          </button>
+
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const beforeCursor = value.slice(0, pos);
+                const linesBefore = beforeCursor.split('\n');
+                const currentLineIdx = linesBefore.length - 1;
+                const cursorOffset = linesBefore[linesBefore.length - 1].length;
+
+                const codeLine = lines[currentLineIdx] || '';
+                const nextCodeLine = lines[currentLineIdx + 1] || '';
+                const indent = nextCodeLine.match(/^\s*/)?.[0] ?? '';
+
+                if (cursorOffset === codeLine.length) {
+                  const newValue = value.slice(0, pos) + '\n' + indent + value.slice(pos);
+                  const newPos = pos + 1 + indent.length;
+                  textarea.value = newValue;
+                  textarea.setSelectionRange(newPos, newPos);
+                  setIdx(newValue.length);
+                } else {
+                  const newValue = value.slice(0, pos) + ' ' + value.slice(pos);
+                  textarea.value = newValue;
+                  textarea.setSelectionRange(pos + 1, pos + 1);
+                  setIdx(newValue.length);
+                  setTyped(prev => prev + 1);
+                  setCorrect(prev => prev);
+                }
+                setTimeout(() => textarea.dispatchEvent(new Event('input')), 0);
+              }
+            }}
+          />
+          <button className="restart-btn" onClick={init}>Restart Test</button>
         </div>
         <div className="result-wrapper">
-          <div className="result-card">
-            <div className="result-title">CPM</div>
-            <div className="result-value">{cpm}</div>
-          </div>
-          <div className="result-card">
-            <div className="result-title">Accuracy</div>
-            <div className="result-value">{acc}%</div>
-          </div>
-          <div className="result-card">
-            <div className="result-title">Time</div>
-            <div className="result-value">{time}s</div>
-          </div>
+          <div className="result-card"><div className="result-title">CPM</div><div className="result-value">{cpm}</div></div>
+          <div className="result-card"><div className="result-title">Accuracy</div><div className="result-value">{acc}%</div></div>
+          <div className="result-card"><div className="result-title">Time</div><div className="result-value">{time}s</div></div>
         </div>
       </div>
       <footer>Inspired by Monkeytype | Created for programmers</footer>
