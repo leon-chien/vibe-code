@@ -67,7 +67,7 @@ const App: React.FC = () => {
 
   const currentLineIndex = totalText.slice(0, idx).split('\n').length - 1;
   const scrollOffset = Math.max(0, currentLineIndex - 1); // scroll from second line
-  const lineHeightPx = 49.28; // line height in px, must match CSS
+  const lineHeightPx = 60.8; // line height in px, must match CSS
 
   return (
     <div className="App">
@@ -96,22 +96,56 @@ const App: React.FC = () => {
                     isCursorOnEmptyLine ? <span className="code-char current">&nbsp;</span> : <span className="code-char">&nbsp;</span>
                   ) : (
                     <>
-                      {line.split('').map((ch, charIdx) => {
-                        const flatIdx = startIdx + charIdx;
-                        const userChar = inputRef.current?.value[flatIdx] ?? '';
-                        const isPending = flatIdx >= (inputRef.current?.value.length ?? 0);
-                        const isCurrent = flatIdx === idx;
+                      {(() => {
+                        const chars = line.split('');
+                        const groupedSpans = [];
+                        let group = '';
+                        let lastClass = '';
+                        for (let charIdx = 0; charIdx <= chars.length; charIdx++) {
+                          const ch = chars[charIdx];
+                          const flatIdx = startIdx + charIdx;
+                          const userChar = inputRef.current?.value[flatIdx] ?? '';
+                          const isPending = flatIdx >= (inputRef.current?.value.length ?? 0);
+                          const isCurrent = flatIdx === idx;
 
-                        return (
-                          <span
-                            key={charIdx}
-                            className={`code-char ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ch === userChar ? 'correct' : 'incorrect'}`}
-                            dangerouslySetInnerHTML={{
-                              __html: ch === ' ' ? '&nbsp;' : ch === '\t' ? '&nbsp;&nbsp;&nbsp;&nbsp;' : ch
-                            }}
-                          />
-                        );
-                      })}
+                          let currentClass = isPending ? 'pending' : ch === userChar ? 'correct' : 'incorrect';
+                          if (isCurrent) currentClass += ' current';
+
+                          if (currentClass !== lastClass && group.length > 0) {
+                            groupedSpans.push(
+                              <span
+                                key={charIdx + '-' + lastClass}
+                                className={`code-char ${lastClass}`.trim()}
+                                dangerouslySetInnerHTML={{
+                                  __html: group
+                                    .replace(/ /g, '&nbsp;')
+                                    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                                }}
+                              />
+                            );
+                            group = '';
+                          }
+
+                          if (ch !== undefined) {
+                            group += ch;
+                            lastClass = currentClass;
+                          }
+                        }
+                        if (group.length > 0) {
+                          groupedSpans.push(
+                            <span
+                              key={'end-' + lastClass}
+                              className={`code-char ${lastClass}`.trim()}
+                              dangerouslySetInnerHTML={{
+                                __html: group
+                                  .replace(/ /g, '&nbsp;')
+                                  .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                              }}
+                            />
+                          );
+                        }
+                        return groupedSpans;
+                      })()}
                       {isCursorAtEnd && <span className="code-char current">&nbsp;</span>}
                     </>
                   )}

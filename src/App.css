@@ -1,3 +1,4 @@
+/* App.css with red squiggle underline for incorrect characters */
 :root {
   --bg-color: #1e1e1e;
   --main-color: #5b88e3;
@@ -79,9 +80,9 @@ body, .App {
 }
 
 .code-display {
-  height: calc(3.08rem * 7);
+  height: calc(3.8rem * 7);
   font-size: 2.52rem;
-  line-height: 3.08rem;
+  line-height: 3.8rem;
   overflow: hidden;
   width: 85vw;
   display: block;
@@ -97,7 +98,7 @@ body, .App {
 .code-text {
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 3.08rem;
+  line-height: 3.8rem;
   transition: transform 0.2s ease;
   position: absolute;
   top: 0;
@@ -160,8 +161,11 @@ body, .App {
 
 .code-char.incorrect {
   color: var(--error-color);
-  text-decoration: underline wavy var(--error-color);
-  text-underline-offset: 0.25rem;
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--error-color);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.6rem;
 }
 
 .code-char.pending {
