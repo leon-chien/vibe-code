@@ -118,8 +118,11 @@ const App: React.FC = () => {
                                 className={`code-char ${lastClass}`.trim()}
                                 dangerouslySetInnerHTML={{
                                   __html: group
-                                    .replace(/ /g, '&nbsp;')
-                                    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                                  .replace(/&/g, '&amp;')
+                                  .replace(/</g, '&lt;')
+                                  .replace(/>/g, '&gt;')
+                                  .replace(/ /g, '&nbsp;')
+                                  .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
                                 }}
                               />
                             );
@@ -138,8 +141,11 @@ const App: React.FC = () => {
                               className={`code-char ${lastClass}`.trim()}
                               dangerouslySetInnerHTML={{
                                 __html: group
-                                  .replace(/ /g, '&nbsp;')
-                                  .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'),
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/ /g, '&nbsp;')
+                                .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
                               }}
                             />
                           );
